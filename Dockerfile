@@ -3,12 +3,16 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 # Copy requirements and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt && \
-    find /root/.local -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true && \
-    find /root/.local -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
-    find /root/.local -type f -name "*.pyc" -delete
+RUN pip install --no-cache-dir -r requirements.txt && \
+    find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true && \
+    find /opt/venv -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true && \
+    find /opt/venv -type f -name "*.pyc" -delete
 
 # Stage 2: Runtime
 FROM python:3.11-slim
@@ -19,13 +23,13 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 appgroup && \
     adduser --system --uid 1001 --gid 1001 --no-create-home appuser
 
-# Copy dependencies from builder directly with user permissions (avoids creating redundant chown layers)
-COPY --from=builder --chown=appuser:appgroup /root/.local /home/appuser/.local
+# Copy virtualenv from builder
+COPY --from=builder /opt/venv /opt/venv
 
-# Copy application source code directly with user permissions
+# Copy application source code
 COPY --chown=appuser:appgroup . .
 
-ENV PATH=/home/appuser/.local/bin:$PATH \
+ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000
