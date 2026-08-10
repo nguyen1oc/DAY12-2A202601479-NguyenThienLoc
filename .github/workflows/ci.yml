@@ -27,7 +27,7 @@ jobs:
 
       - name: Run Pytest
         env:
-          AGENT_API_KEY: ci-test-key-123456
+          AGENT_API_KEY: test
           REDIS_URL: "fake://"
           LOG_LEVEL: INFO
           RATE_LIMIT_PER_MINUTE: 10
